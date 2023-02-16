@@ -1,0 +1,70 @@
+# Distributed makefile
+
+JAR = Vehicle_Cloud_Sim.jar
+JC = javac
+MAIN = Main
+
+ROOT = ..
+
+# Source Dirs
+SRC = src
+GLOBAL = $(SRC)/Globals
+HIGHWAY = $(SRC)/Highway
+NETWORK = $(SRC)/Network
+
+#Class Files Directory
+CLSDIR = $(ROOT)/obj
+
+BINDIR = $(ROOT)/bin
+
+#Log Files Directory
+LOGDIR = $(ROOT)/log
+
+.PHONY: default all clean executable build
+
+default: build
+# Rule to build the executable
+executable: $(BINDIR)/$(TARGET)
+
+# Having the includes directory, or directories in the classpath
+# is pivotal in ensuring your code compiles correctly. 
+# Since we will be moving source files all over the place, 
+# if you do not specify where the includes are on your compilation 
+# and builds will fail
+JCFLAGS = -cp $(CLSDIR):$(ROOT)/$(SRC):$(ROOT)/$(GLOBAL):$(ROOT)/$(HIGHWAY):$(ROOT)/$(NETWORK) \
+		-d $(CLSDIR)
+
+ROOTSRCS = $(wildcard $(ROOT)/$(SRC)/*.java $(ROOT)/$(GLOBAL)/*.java $(ROOT)/$(HIGHWAY)/*.java \
+		$(ROOT)/$(NETWORK)/*.java)
+
+#Source Files
+SRCS = $(wildcard $(SRC)/*.java $(GLOBAL)/*.java $(HIGHWAY)/*.java \
+		$(NETWORK)/*.java)
+
+# Get only the object files that will be generated
+# by compiling the current directory
+DIRFILES = $(patsubst %.java, $(CLSDIR)/%.class, $(SRCS))
+# Get all the object files required to build the
+# executable
+CLS = $(patsubst %.java, $(CLSDIR)/%.class, $(ROOTSRCS))
+
+cls: $(CLS)
+
+setup:
+	@mkdir -p $(CLSDIR)
+
+$(CLSDIR)/%.class: %.java setup
+	$(JC) $(JCFLAGS) $<
+
+.PRECIOUS: $(BINDIR)/$(TARGET) $(CLS) $(DIRFILES)
+
+$(BINDIR)/$(TARGET):
+	@mkdir -p $(@D)
+	jar cfe $(BINDIR)/$(JAR) $(MAIN) -C $(CLSDIR) .
+
+# Rule to only compile the source files in the worker
+# nodes directory
+build: $(DIRFILES)
+
+clean:
+	-rm -rf $(CLSDIR) $(LOGDIR) $(BINDIR)

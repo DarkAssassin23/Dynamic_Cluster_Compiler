@@ -1,0 +1,61 @@
+# Distributed makefile
+
+TARGET = timeRemainingServer
+CC = gcc
+CFLAGS = -Os
+LIBS = -lpthread
+
+ROOT = ..
+GENERAL_UTILS_HEADERDIR = $(ROOT)/headers/general_utils
+SERVER_UTILS_HEADERDIR = $(ROOT)/headers/server_utils
+
+SRCDIR = src
+GENERAL_UTILS_SRCDIR = $(SRCDIR)/general_utils
+SERVER_UTILS_SRCDIR = $(SRCDIR)/server_utils
+
+OBJDIR = $(ROOT)/obj
+BINDIR = $(ROOT)/bin
+
+.PHONY: default all clean executable build
+
+# Rule to build the executable
+executable: $(BINDIR)/$(TARGET)
+default: executable
+all: default
+
+# Having the includes directory, or directories
+# is pivotal in ensuring your code compiles correctly. 
+# Since we will be moving source files all over the place, 
+# if you do not specify where the includes are on your compilation 
+# and builds will fail
+INCLUDES = -I $(GENERAL_UTILS_HEADERDIR) -I $(SERVER_UTILS_HEADERDIR)
+
+ROOTSRCS = $(wildcard $(ROOT)/$(SRCDIR)/*.c $(ROOT)/$(GENERAL_UTILS_SRCDIR)/*.c \
+		$(ROOT)/$(SERVER_UTILS_SRCDIR)/*.c)
+
+SRCS = $(wildcard $(SRCDIR)/*.c  $(GENERAL_UTILS_SRCDIR)/*.c $(SERVER_UTILS_SRCDIR)/*.c)
+# Get only the object files that will be generated
+# by compiling the current directory
+DIRFILES = $(patsubst %.c, $(OBJDIR)/%.o, $(SRCS))
+# Get all the object files required to build the
+# executable
+OBJECTS = $(patsubst $(ROOT)/%.c, $(OBJDIR)/%.o, $(ROOTSRCS))
+HEADERS = $(wildcard $(GENERAL_UTILS_HEADERDIR)/*.h, $(SERVER_UTILS_HEADERDIR)/*.h)
+
+$(OBJDIR)/%.o: %.c $(HEADERS)
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+
+.PRECIOUS: $(BINDIR)/$(TARGET) $(OBJECTS) $(DIRFILES)
+
+$(BINDIR)/$(TARGET): $(OBJECTS)
+	@mkdir -p $(@D)
+	$(CC) $(OBJECTS) -g -Wall $(LIBS) -o $@
+	@cp $(ROOT)/configs/server.cfg $(BINDIR)
+
+# Rule to only compile the source files in the worker
+# nodes directory
+build: $(DIRFILES)
+
+clean:
+	-rm -rf $(OBJDIR) $(BINDIR)
