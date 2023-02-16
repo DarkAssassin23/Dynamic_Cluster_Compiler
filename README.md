@@ -23,7 +23,8 @@ power of multiple servers. This compiler works with any programming
 language that can be compiled with a makefile.
 
 More information about how it works can be found at my blog post
-which you can find here.
+which you can find 
+<a href="https://chiefwithcolorfulshoes.com/blog/Dynamic_Cluster_Compiler" target="new">here</a>.
 
 -------
 ## How it works
