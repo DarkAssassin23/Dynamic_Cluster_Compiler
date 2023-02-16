@@ -1,0 +1,75 @@
+---
+  - name: Deploy and build
+    hosts: workers
+    gather_facts: no
+    vars:
+      remoteHost: "localhost"
+      remoteUser: "user"
+      remoteDir: "~/"
+      mountPoint: "~/tmp"
+      makeBuild: "build"
+      makeExecutable: "executable"
+      jFlag: "nproc"
+    tasks:
+      - name: Checking if mount point exists
+        stat:
+          path: "{{mountPoint}}"
+        register: mntPoint
+
+      - name: Make sure mount point is clean
+        mount:
+          path: "{{mountPoint}}"
+          state: unmounted
+        when: mntPoint.stat.exists
+
+      - name: Creating mount point
+        file:
+          path: "{{mountPoint}}"
+          state: directory
+          mode: 0755
+          group: "{{ansible_user}}"
+          owner: "{{ansible_user}}"
+        when: mntPoint.stat.exists == false
+
+      - name: Mount remote location
+        shell: "sshfs -o idmap=user,reconnect {{remoteUser}}@{{remoteHost}}:{{remoteDir}} {{mountPoint}}"
+
+      - name: Check if there is work to do
+        stat:
+          path: "{{mountPoint}}/{{ansible_ssh_host}}"
+        register: work_to_do
+
+      - name: Build source code
+        shell: "make {{makeBuild}} -j `{{jFlag}}`"  
+        args: 
+          chdir: "{{mountPoint}}/{{ansible_ssh_host}}" 
+        when: work_to_do.stat.exists
+
+  - name: Create executable
+    hosts: master
+    gather_facts: no
+    tasks:
+      - name: Build the executeable
+        shell: "make {{makeExecutable}} -j `{{jFlag}}`"
+        args: 
+          chdir: "{{mountPoint}}/{{ansible_ssh_host}}"  
+
+  - name: Clean up
+    hosts: workers
+    gather_facts: no
+    tasks: 
+
+    - name: Remove folder
+      file:
+        state: absent
+        path: "{{mountPoint}}/{{ansible_ssh_host}}"
+
+    - name: Unmount remote location 
+      mount:
+        path: "{{mountPoint}}"
+        state: unmounted
+
+    - name: Remove mount point
+      file:
+        state: absent
+        path: "{{mountPoint}}"

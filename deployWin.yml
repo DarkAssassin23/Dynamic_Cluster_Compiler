@@ -1,0 +1,59 @@
+---
+  - name: Deploy and build
+    hosts: workers
+    gather_facts: no
+    vars:
+      remoteHost: "localhost"
+      remoteUser: "user"
+      remoteDir: "~/"
+      mountPoint: "X:"
+      makeBuild: "build"
+      makeExecutable: "executable"
+    tasks:
+      - name: Copy mount script
+        win_copy:
+          src: 'dcc-mount.bat'
+          dest: 'C:/'
+
+      - name: Mount remote location
+        win_shell: "cmd.exe /c dcc-mount.bat"
+        args:
+          chdir: 'C:\'
+
+      - name: Check if there is work to do
+        win_stat:
+          path: '{{mountPoint}}:\{{ansible_ssh_host}}'
+        register: work_to_do
+
+      - name: Build source code
+        win_shell: "make {{makeBuild}} -j (Get-CimInstance -ClassName Win32_Processor).NumberOfLogicalProcessors"  
+        args: 
+          chdir: '{{mountPoint}}:\{{ansible_ssh_host}}' 
+        when: work_to_do.stat.exists
+
+  - name: Create executable
+    hosts: master
+    gather_facts: no
+    tasks:
+      - name: Build the executeable
+        win_shell: "make {{makeExecutable}} -j (Get-CimInstance -ClassName Win32_Processor).NumberOfLogicalProcessors"
+        args:
+          chdir: '{{mountPoint}}:\{{ansible_ssh_host}}'  
+
+  - name: Clean up
+    hosts: workers
+    gather_facts: no
+    tasks: 
+
+    - name: Remove folder
+      win_file:
+        state: absent
+        path: '{{mountPoint}}:\{{ansible_ssh_host}}'
+    
+    - name: Remove dcc-mount.bat
+      win_file:
+        state: absent
+        path: 'C:\dcc-mount.bat'
+        
+    - name: Unmount remote location 
+      win_shell: "net use {{mountPoint}}: /delete"
