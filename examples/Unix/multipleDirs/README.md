@@ -55,7 +55,7 @@ This example assumes you have mounted your centrally located device at <code>/mn
 on your local machine running the compiler, and have the location of <code>dcc.py</code> as part
 off your $PATH
 ```bash
-cd /mnt/Code/Distributed-Compiler/examples/Hello_World
+cd /mnt/Code/Distributed-Compiler/examples/multipleDirs
 python3 dcc.py
 ```
 
@@ -65,6 +65,6 @@ on your local machine running the compiler, and have <code>dcc.py</code> with th
 Also, in the latter case, it is assumed the <code>deploy.yml</code> file is also located 
 in <code>/usr/local/bin</code> as well.
 ```bash
-dcc ~/shared/Distributed-Compiler/examples/Hello_World
+dcc ~/shared/Distributed-Compiler/examples/multipleDirs
 ```
 
